@@ -495,7 +495,7 @@ class MirrorLeechListener:
                         else:
                             buttons.ubutton("🔗 Direct Link", share_url)
                             if mime_type.startswith(("image", "video", "audio")):
-                                share_urls = f"{INDEX_URL}/{name}&view=true"
+                                share_urls = f"{INDEX_URL}/{name}?a=view"
                                 buttons.ubutton("🌐 View Link", share_urls)
                 buttons = extra_btns(buttons)
                 if self.dmMessage:
