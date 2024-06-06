@@ -5,12 +5,12 @@ from requests import get as rget
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-if ospath.exists('Z_Logs.txt'):
-    with open('Z_Logs.txt', 'r+') as f:
+if ospath.exists('logs.txt'):
+    with open('logs.txt', 'r+') as f:
         f.truncate(0)
 
 basicConfig(format='%(levelname)s | From %(name)s -> %(module)s line no: %(lineno)d | %(message)s',
-                    handlers=[FileHandler('Z_Logs.txt'), StreamHandler()], level=INFO)
+                    handlers=[FileHandler('logs.txt'), StreamHandler()], level=INFO)
 
 CONFIG_FILE_URL = environ.get('CONFIG_FILE_URL')
 try:
@@ -80,7 +80,7 @@ update = srun([f"git init -q \
 log_info('Fetching latest updates...')
 if update.returncode == 0:
     log_info('Successfully updated...')
-    log_info('Thanks For Using @Z_Mirror')
+    log_info('Thanks For Using Bot')
 else:
     log_error('Error while getting latest updates.')
     log_error('Check if entered UPSTREAM_REPO is valid or not!')

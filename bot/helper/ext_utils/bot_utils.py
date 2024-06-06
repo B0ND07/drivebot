@@ -101,7 +101,7 @@ def bt_selection_buttons(id_, isCanCncl=True):
 
 async def get_telegraph_list(telegraph_content):
     path = [(await telegraph.create_page(
-        title='Z Drive Search', content=content))["path"] for content in telegraph_content]
+        title='Drive Search', content=content))["path"] for content in telegraph_content]
     if len(path) > 1:
         await telegraph.edit_telegraph(path, telegraph_content)
     buttons = ButtonMaker()
@@ -138,7 +138,7 @@ def get_readable_message():
         if config_dict['DELETE_LINKS'] and int(config_dict['AUTO_DELETE_MESSAGE_DURATION']) > 0:
             msg += f"\n<b>File Name</b> » <i>{escape(f'{download.name()}')}</i>\n\n" if elapsed <= config_dict['AUTO_DELETE_MESSAGE_DURATION'] else ""
         else:
-            msg += f"\n<b>File Name</b> » <i>{escape(f'{download.name()}')}</i>\n\n"
+            msg += f"\n<b>File Name</b> » <code><i>{escape(f'{download.name()}')}</i></code>\n\n"
         msg += f"⌑ <b>{download.status()}</b>"
         if download.status() not in [MirrorStatus.STATUS_SEEDING, MirrorStatus.STATUS_PAUSED,
                                      MirrorStatus.STATUS_QUEUEDL, MirrorStatus.STATUS_QUEUEUP]:

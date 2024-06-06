@@ -58,10 +58,10 @@ async def start(_, message):
     elif config_dict['DM_MODE'] and message.chat.type != message.chat.type.SUPERGROUP:
         start_string = 'Bot Started.\n' \
                        'Now I will send all of your stuffs here.\n' \
-                       'Use me at: @Z_Mirror'
+                       'Use me at: '
     elif not config_dict['DM_MODE'] and message.chat.type != message.chat.type.SUPERGROUP:
         start_string = 'Sorry, you cannot use me here!\n' \
-                       'Join: @Z_Mirror to use me.\n' \
+                       'Join:  to use me.\n' \
                        'Thank You'
     else:
         tag = message.from_user.mention
@@ -93,7 +93,7 @@ async def ping(_, message):
     await editMessage(reply, f'{ping_time} ms')
 
 async def log(_, message):
-    await sendFile(message, 'Z_Logs.txt')
+    await sendFile(message, 'logs.txt')
 
 help_string = f'''
 <b>NOTE: Click on any CMD to see more detalis.</b>
