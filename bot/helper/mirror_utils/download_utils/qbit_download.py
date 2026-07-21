@@ -67,7 +67,7 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
         await listener.onDownloadStart()
 
         if config_dict['BASE_URL'] and listener.select:
-            if link.startswith('magnet:'):
+            if link.startswith('magnet:') or link.startswith('http'):
                 metamsg = "Downloading Metadata, please wait!"
                 metamsg += "\nThen you can select files.\n\nUse torrent file to avoid this wait."
                 meta = await sendMessage(listener.message, metamsg)

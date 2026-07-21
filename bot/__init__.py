@@ -574,6 +574,8 @@ if ospath.exists('categories.txt'):
             categories_dict[name] = tempdict
 
 PORT = environ.get('PORT')
+if not PORT or len(PORT) == 0:
+    PORT = str(BASE_URL_PORT)
 Popen(f"gunicorn web.wserver:app --bind 0.0.0.0:{PORT} --worker-class gevent", shell=True)
 
 zrun(["openstack", "-d", f"--profile={getcwd()}"])

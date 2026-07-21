@@ -66,21 +66,4 @@ log_info(f'Entered upstream branch: {UPSTREAM_BRANCH}')
 if len(UPSTREAM_BRANCH) == 0:
     UPSTREAM_BRANCH = 'upstream'
 
-if ospath.exists('.git'):
-    srun(["rm", "-rf", ".git"])
-
-update = srun([f"git init -q \
-                    && git config --global user.email z-mirror.tg@github.com \
-                    && git config --global user.name Z-Mirror \
-                    && git add . \
-                    && git commit -sm update -q \
-                    && git remote add origin {UPSTREAM_REPO} \
-                    && git fetch origin -q \
-                    && git reset --hard origin/{UPSTREAM_BRANCH} -q"], shell=True)
-log_info('Fetching latest updates...')
-if update.returncode == 0:
-    log_info('Successfully updated...')
-    log_info('Thanks For Using Bot')
-else:
-    log_error('Error while getting latest updates.')
-    log_error('Check if entered UPSTREAM_REPO is valid or not!')
+log_info('Bypassing git update to run local modifications.')

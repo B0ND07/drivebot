@@ -166,11 +166,11 @@ async def split_file(path, size, dirpath, split_size, listener, start_time=0, i=
                     return await split_file(path, size, dirpath, split_size, listener, start_time, i, True, False)
                 else:
                     LOGGER.warning(f"{stderr}. Unable to split this video, if it's size less than \
-                                   {MAX_SPLIT_SIZE} will be uploaded as it is. Path: {path}")
+                                   {split_size} will be uploaded as it is. Path: {path}")
                 return "errored"
             out_size = await aiopath.getsize(out_path)
-            if out_size > MAX_SPLIT_SIZE:
-                dif = out_size - MAX_SPLIT_SIZE
+            if out_size > split_size:
+                dif = out_size - split_size
                 split_size -= dif + 5000000
                 await aioremove(out_path)
                 return await split_file(path, size, dirpath, split_size, listener, start_time, i, True, multi_streams)

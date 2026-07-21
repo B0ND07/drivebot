@@ -4,6 +4,7 @@ from logging import getLogger
 from bot import list_drives_dict, config_dict
 from bot.helper.ext_utils.bot_utils import get_readable_file_size
 from bot.helper.mirror_utils.gdrive_utils.helper import GoogleDriveHelper
+from urllib.parse import quote as url_quote
 
 LOGGER = getLogger(__name__)
 
@@ -128,6 +129,7 @@ class gdSearch(GoogleDriveHelper):
                     if not config_dict['DISABLE_DRIVE_LINK']:
                         msg += f"<b><a href={furl}>Drive Link</a></b> | "
                     if index_url:
+                        url_path = url_quote(f'{name}')
                         url = f'{index_url}findpath?id={file.get("id")}'
                         msg += f'<b><a href="{url}">Index Link</a></b>'
                 elif mime_type == 'application/vnd.google-apps.shortcut':

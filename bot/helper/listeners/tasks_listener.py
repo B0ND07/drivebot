@@ -318,13 +318,16 @@ class MirrorLeechListener:
                     for file_ in files:
                         f_path = ospath.join(dirpath, file_)
                         f_size = await aiopath.getsize(f_path)
-                        if f_size > LEECH_SPLIT_SIZE:
+                        split_size = LEECH_SPLIT_SIZE
+                        if f_size > 2147483648:  # 2GB
+                            split_size = 2147483648
+                        if f_size > split_size:
                             if not checked:
                                 checked = True
                                 async with download_dict_lock:
                                     download_dict[self.uid] = SplitStatus(up_name, size, gid, self)
                                 LOGGER.info(f"Splitting: {up_name}")
-                            res = await split_file(f_path, f_size, dirpath, LEECH_SPLIT_SIZE, self)
+                            res = await split_file(f_path, f_size, dirpath, split_size, self)
                             if not res:
                                 return
                             if res == "errored":

@@ -4,11 +4,11 @@ from subprocess import check_output
 from time import sleep, time
 from aria2p import API as ariaAPI
 from aria2p import Client as ariaClient
-from flask import Flask, request
+from flask import Flask, request, jsonify, send_from_directory
 from psutil import boot_time, disk_usage, net_io_counters
 from qbittorrentapi import Client as qbClient
 from qbittorrentapi import NotFound404Error
-from web.nodes import make_tree
+from web.nodes import make_tree, extract_file_ids
 
 app = Flask(__name__)
 
@@ -728,88 +728,132 @@ def re_verfiy(paused, resumed, client, hash_id):
     LOGGER.info(f"Verified! Hash: {hash_id}")
     return True
 
-@app.route('/app/files/<string:id_>', methods=['GET'])
-def list_torrent_contents(id_):
+@app.route('/app/files', methods=['GET'])
+def files_page():
+    return send_from_directory(path.abspath('web/templates'), 'page.html')
 
-    if "pin_code" not in request.args.keys():
-        return rawindexpage.replace("/* style1 */", stlye1).replace("<!-- pin_entry -->", pin_entry) \
-            .replace("{form_url}", f"/app/files/{id_}")
+@app.route('/app/files/torrent', methods=['GET', 'POST'])
+def handle_torrent():
+    gid = request.args.get('gid')
+    pin = request.args.get('pin')
+    mode = request.args.get('mode')
 
-    pincode = ""
-    for nbr in id_:
-        if nbr.isdigit():
-            pincode += str(nbr)
-        if len(pincode) == 4:
-            break
-    if request.args["pin_code"] != pincode:
-        return rawindexpage.replace("/* style1 */", stlye1).replace(
-            "<!-- Print -->", "<h1 style='text-align: center;color: red;'>Incorrect pin code</h1>")
+    if not gid:
+        return jsonify({
+            "files": [],
+            "engine": "",
+            "error": "GID is missing",
+            "message": "GID not specified",
+        })
 
-    if len(id_) > 20:
-        client = qbClient(host="localhost", port="8090")
-        res = client.torrents_files(torrent_hash=id_)
-        cont = make_tree(res)
-        client.auth_log_out()
-    else:
-        aria2 = ariaAPI(ariaClient(host="http://localhost", port=6800, secret=""))
-        res = aria2.client.get_files(id_)
-        cont = make_tree(res, True)
-    return rawindexpage.replace("/* style2 */", stlye2).replace("<!-- files_list -->", files_list) \
-        .replace("{form_url}", f"/app/files/{id_}?pin_code={pincode}") \
-        .replace("<!-- {My_content} -->", cont[0])
+    if not pin:
+        return jsonify({
+            "files": [],
+            "engine": "",
+            "error": "Pin is missing",
+            "message": "PIN not specified",
+        })
 
-@app.route('/app/files/<string:id_>', methods=['POST'])
-def set_priority(id_):
-    data = dict(request.form)
-    resume = ""
-    if len(id_) > 20:
-        pause = ""
+    pincode = "".join([nbr for nbr in gid if nbr.isdigit()][:4])
+    if pincode != pin:
+        return jsonify({
+            "files": [],
+            "engine": "",
+            "error": "Invalid pin",
+            "message": "The PIN you entered is incorrect",
+        })
 
-        for i, value in data.items():
-            if "filenode" in i:
-                node_no = i.split("_")[-1]
-
-                if value == "on":
-                    resume += f"{node_no}|"
-                else:
-                    pause += f"{node_no}|"
-
-        pause = pause.strip("|")
-        resume = resume.strip("|")
-
-        client = qbClient(host="localhost", port="8090")
-
-        try:
-            client.torrents_file_priority(torrent_hash=id_, file_ids=pause, priority=0)
-        except NotFound404Error:
-            raise NotFound404Error
-        except Exception as e:
-            LOGGER.error(f"{e} Errored in paused")
-        try:
-            client.torrents_file_priority(torrent_hash=id_, file_ids=resume, priority=1)
-        except NotFound404Error:
-            raise NotFound404Error
-        except Exception as e:
-            LOGGER.error(f"{e} Errored in resumed")
-        sleep(1)
-        if not re_verfiy(pause, resume, client, id_):
-            LOGGER.error(f"Verification Failed! Hash: {id_}")
-        client.auth_log_out()
-    else:
-        for i, value in data.items():
-            if "filenode" in i and value == "on":
-                node_no = i.split("_")[-1]
-                resume += f'{node_no},'
-
-        resume = resume.strip(",")
-
-        aria2 = ariaAPI(ariaClient(host="http://localhost", port=6800, secret=""))
-        res = aria2.client.change_option(id_, {'select-file': resume})
-        if res == "OK":
-            LOGGER.info(f"Verified! Gid: {id_}")
+    if request.method == 'POST':
+        data = request.get_json(force=True, silent=True) or {}
+        if mode == "rename":
+            if len(gid) > 20:
+                client = qbClient(host="localhost", port="8090")
+                try:
+                    _type = data.get("type")
+                    old_path = data.get("old_path")
+                    new_path = data.get("new_path")
+                    if _type == "file":
+                        client.torrents_rename_file(torrent_hash=gid, old_path=old_path, new_path=new_path)
+                    else:
+                        client.torrents_rename_folder(torrent_hash=gid, old_path=old_path, new_path=new_path)
+                    content = {
+                        "files": [],
+                        "engine": "",
+                        "error": "",
+                        "message": "Rename successfully.",
+                    }
+                except Exception as e:
+                    LOGGER.error(f"{e} Errored in renaming")
+                    content = {
+                        "files": [],
+                        "engine": "",
+                        "error": "Rename failed.",
+                        "message": str(e),
+                    }
+                finally:
+                    client.auth_log_out()
+            else:
+                content = {
+                    "files": [],
+                    "engine": "",
+                    "error": "Rename failed.",
+                    "message": "Cannot rename aria2c torrent file",
+                }
         else:
-            LOGGER.info(f"Verification Failed! Report! Gid: {id_}")
-    return list_torrent_contents(id_)
+            selected_files, unselected_files = extract_file_ids(data)
+            if len(gid) > 20:
+                client = qbClient(host="localhost", port="8090")
+                pause = "|".join(unselected_files)
+                resume = "|".join(selected_files)
+                try:
+                    client.torrents_file_priority(torrent_hash=gid, file_ids=pause, priority=0)
+                except Exception as e:
+                    LOGGER.error(f"{e} Errored in paused")
+                try:
+                    client.torrents_file_priority(torrent_hash=gid, file_ids=resume, priority=1)
+                except Exception as e:
+                    LOGGER.error(f"{e} Errored in resumed")
+                sleep(1)
+                if not re_verfiy(pause, resume, client, gid):
+                    LOGGER.error(f"Verification Failed! Hash: {gid}")
+                client.auth_log_out()
+            else:
+                resume = ",".join(selected_files)
+                aria2 = ariaAPI(ariaClient(host="http://localhost", port=6800, secret=""))
+                res = aria2.client.change_option(gid, {'select-file': resume})
+                if res == "OK":
+                    LOGGER.info(f"Verified! Gid: {gid}")
+                else:
+                    LOGGER.info(f"Verification Failed! Report! Gid: {gid}")
+            content = {
+                "files": [],
+                "engine": "",
+                "error": "",
+                "message": "Your selection has been submitted successfully.",
+            }
+        return jsonify(content)
+    else:
+        try:
+            if len(gid) > 20:
+                client = qbClient(host="localhost", port="8090")
+                res = client.torrents_files(torrent_hash=gid)
+                content = make_tree(res, "qbittorrent")
+                client.auth_log_out()
+            else:
+                aria2 = ariaAPI(ariaClient(host="http://localhost", port=6800, secret=""))
+                res = aria2.client.get_files(gid)
+                op = aria2.client.get_option(gid)
+                fpath = f"{op['dir']}/"
+                content = make_tree(res, "aria2", fpath)
+        except Exception as e:
+            LOGGER.error(str(e))
+            content = {
+                "files": [],
+                "engine": "",
+                "error": "Error getting files",
+                "message": str(e),
+            }
+        return jsonify(content)
 
 botStartTime = time()
 if path.exists('.git'):
